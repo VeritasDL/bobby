@@ -1,5 +1,5 @@
 plugins {
-	id("fabric-loom") version "1.8.8"
+	id("fabric-loom") version "1.8.9"
 	id("maven-publish")
 	id("com.github.breadmoirai.github-release") version "2.2.12"
 	id("com.matthewprenger.cursegradle") version "1.4.0"
@@ -14,6 +14,7 @@ group = mavenGroup
 val minecraftVersion: String by project
 val clothConfigVersion: String by project
 val modMenuVersion: String by project
+val skyblockerVersion: String by project
 
 version = "$modVersion+mc$minecraftVersion"
 
@@ -45,7 +46,6 @@ dependencies {
 	val configurateVersion: String by project
 	val geantyrefVersion: String by project
 	val hoconVersion: String by project
-	val sodium05Version: String by project
 	val sodium06Version: String by project
 	val starlightVersion: String by project
 	val confabricateVersion: String by project
@@ -64,24 +64,26 @@ dependencies {
 	include("io.leangen.geantyref:geantyref:$geantyrefVersion")
 	include("com.typesafe:config:$hoconVersion")
 
-	"modSodium05CompileOnly"("maven.modrinth:sodium:$sodium05Version")
 	"modSodium06CompileOnly"("maven.modrinth:sodium:$sodium06Version")
 	modCompileOnly("maven.modrinth:starlight:$starlightVersion")
 	modCompileOnly("ca.stellardrift:confabricate:$confabricateVersion")
 	modImplementation("me.shedaniel.cloth:cloth-config-fabric:$clothConfigVersion")
 	modImplementation("com.terraformersmc:modmenu:$modMenuVersion")
+	modImplementation("maven.modrinth:y6DuFGwJ:$skyblockerVersion")
 }
 
 tasks.processResources {
 	inputs.property("version", project.version)
 	inputs.property("clothConfigVersion", clothConfigVersion)
 	inputs.property("modMenuVersion", modMenuVersion)
+	inputs.property("skyblockerVersion", skyblockerVersion)
 
 	filesMatching("fabric.mod.json") {
 		expand(mutableMapOf(
 				"version" to project.version,
 				"clothConfigVersion" to clothConfigVersion,
-				"modMenuVersion" to modMenuVersion
+				"modMenuVersion" to modMenuVersion,
+				"skyblockerVersion" to skyblockerVersion
 		))
 	}
 }
@@ -187,6 +189,7 @@ modrinth {
 		optional.project("9s6osm5g") // Cloth Config
 		optional.project("mOgUt4GM") // Mod Menu
 		optional.project("AANobbMI") // Sodium
+		optional.project("y6DuFGwJ") // Skyblocker
 	}
 }
 

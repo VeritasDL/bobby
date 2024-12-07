@@ -1,6 +1,8 @@
 package de.johni0702.minecraft.bobby;
 
 import com.google.common.collect.Iterables;
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import de.johni0702.minecraft.bobby.util.LimitedExecutor;
 import de.johni0702.minecraft.bobby.util.RegionPos;
 import io.netty.util.concurrent.DefaultThreadFactory;
@@ -144,7 +146,9 @@ public class Worlds implements AutoCloseable {
     private Worlds(Path directory) {
         this.directory = directory;
         this.metaFile = metaFile(directory);
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         load(readFromDisk());
 
         if (!outdatedWorlds.isEmpty()) {
@@ -158,6 +162,9 @@ public class Worlds implements AutoCloseable {
         // When switching from one server to another, this function can be executed multiple times
         // Without this early return, that would create multiple empty words,
         // after which only the last one would be merged and the empty ones would stay in memory
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         if (worlds.get(currentWorldId).knownRegions.isEmpty()) {
             return;
         }
@@ -305,6 +312,9 @@ public class Worlds implements AutoCloseable {
     }
 
     public void markAsUpToDate(FakeChunkStorage storage) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         World world = outdatedWorlds.stream().filter(it -> it.storage == storage).findFirst().orElse(null);
         assert world != null;
 
@@ -368,7 +378,9 @@ public class Worlds implements AutoCloseable {
         if (dirty && now - lastSave > 10_000) {
             scheduleSave();
         }
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return processPendingMergeChecks();
+        }
         // Jobs are being worked on in roughly the same order as we iterate over them, so once we've found a
         // few jobs that were still pending, there's not really much point in looking any further
         int misses = 0;
@@ -500,7 +512,9 @@ public class Worlds implements AutoCloseable {
     @SuppressWarnings("DuplicateBranchesInSwitch")
     private boolean processMerge(World sourceWorld) {
         World targetWorld = worlds.get(sourceWorld.mergingIntoWorld);
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return false;
+        }
         if (targetWorld == null) {
             return false; // target not currently available (e.g. might need upgrade)
         }
@@ -702,6 +716,9 @@ public class Worlds implements AutoCloseable {
 
     private void processWorkQueue() {
         assert MinecraftClient.getInstance().isOnThread();
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         while (true) {
             if (workQueueBlockedOn != null) {
                 if (!workQueueBlockedOn.isDone()) {
@@ -723,6 +740,9 @@ public class Worlds implements AutoCloseable {
     }
 
     public void runOrScheduleWork(Supplier<Future<?>> work) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         assert MinecraftClient.getInstance().isOnThread();
         if (workQueue.isEmpty()) {
             lock.writeLock().lock();
@@ -742,6 +762,9 @@ public class Worlds implements AutoCloseable {
 
     /** Re-checks all visible chunks for matching fingerprints. Used after upgrading worlds to match against them. */
     public void recheckChunks(net.minecraft.world.World mcWorld, VisibleChunksTracker tracker) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         // Wrapped to wait for all pending fingerprint updates to be committed, so we don't overwrite them
         runOrScheduleWork(() -> {
             tracker.forEach(chunkCoord -> {
@@ -768,6 +791,9 @@ public class Worlds implements AutoCloseable {
 
     public void observeChunk(net.minecraft.world.World mcWorld, ChunkPos chunkPos, long fingerprint) {
         assert MinecraftClient.getInstance().isOnThread();
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         runOrScheduleWork(() -> tryObserveChunk(mcWorld, chunkPos, fingerprint));
     }
 
@@ -863,6 +889,9 @@ public class Worlds implements AutoCloseable {
     }
 
     private void merge(World sourceWorld, World targetWorld) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         while (targetWorld.mergingIntoWorld != -1) {
             targetWorld = worlds.get(targetWorld.mergingIntoWorld);
         }
@@ -898,6 +927,9 @@ public class Worlds implements AutoCloseable {
         lastSave = now;
         dirty = false;
 
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         for (World world : worlds.values()) {
             metaDirty |= world.metaDirty;
             world.metaDirty = false;
@@ -920,6 +952,9 @@ public class Worlds implements AutoCloseable {
                 saveExecutor.execute(() -> {
                     RegionPos regionPos = RegionPos.fromLong(regionCoord);
                     try {
+                        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                            return;
+                        }
                         world.writeRegionToDisk(regionPos, nbt);
                     } catch (IOException e) {
                         LOGGER.error("Failed to save " + world.regionFile(regionPos), e);
@@ -933,6 +968,9 @@ public class Worlds implements AutoCloseable {
             NbtCompound nbt = saveToNbt();
             saveExecutor.execute(() -> {
                 try {
+                    if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                        return;
+                    }
                     writeToDisk(nbt);
                 } catch (IOException e) {
                     LOGGER.error("Failed to save worlds metadata to " + metaFile, e);
@@ -942,6 +980,10 @@ public class Worlds implements AutoCloseable {
     }
 
     private NbtCompound readFromDisk() {
+
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return null;
+        }
         if (Files.exists(metaFile)) {
             try (InputStream in = Files.newInputStream(metaFile)) {
                 return NbtIo.readCompressed(in, NbtSizeTracker.ofUnlimitedBytes());
@@ -953,6 +995,9 @@ public class Worlds implements AutoCloseable {
     }
 
     private void writeToDisk(NbtCompound nbt) throws IOException {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         Files.createDirectories(directory);
 
         Path tmpFile = Files.createTempFile(directory, "worlds", ".meta");
@@ -998,6 +1043,9 @@ public class Worlds implements AutoCloseable {
     }
 
     private void load(NbtCompound root) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         if (root == null && !Files.exists(directory)) {
             nextWorldId = 1;
         } else if (root == null) {
@@ -1145,7 +1193,9 @@ public class Worlds implements AutoCloseable {
 
     private void sendInfoWithLock(FabricClientCommandSource source, boolean loadAllMetadata) {
         boolean allMetadataAvailable = true;
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         source.sendFeedback(literal(""));
 
         ArrayList<World> sortedWorlds = new ArrayList<>(worlds.values());
@@ -1318,6 +1368,9 @@ public class Worlds implements AutoCloseable {
         }
 
         public void setFingerprint(ChunkPos chunkPos, long fingerprint) {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return;
+            }
             RegionPos regionPos = RegionPos.from(chunkPos);
             long chunkCoord = chunkPos.toLong();
             long regionCoord = regionPos.toLong();
@@ -1486,6 +1539,9 @@ public class Worlds implements AutoCloseable {
 
         @Override
         public void run() {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return;
+            }
             Path file = world.regionFile(regionPos);
             try {
                 result = Region.read(file, regionPos);
@@ -1514,6 +1570,9 @@ public class Worlds implements AutoCloseable {
 
         @Override
         public void run() {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return;
+            }
             NbtCompound nbt = world.storage.loadTag(chunkPos).join().orElse(null);
             if (nbt == null) {
                 result = 0L;
@@ -1559,6 +1618,9 @@ public class Worlds implements AutoCloseable {
 
         @Override
         public void run() {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return;
+            }
             NbtCompound nbt = source.storage.loadTag(chunkPos).join().orElse(null);
             if (nbt == null) {
                 done = true;

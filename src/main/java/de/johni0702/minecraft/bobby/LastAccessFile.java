@@ -1,5 +1,7 @@
 package de.johni0702.minecraft.bobby;
 
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
@@ -75,7 +77,9 @@ public class LastAccessFile implements Closeable {
 
     private void scheduleSave() {
         if (closed) return;
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         Util.getIoWorkerExecutor().execute(this::saveOrLog);
 
         CompletableFuture.delayedExecutor(1, TimeUnit.MINUTES).execute(this::scheduleSave);
@@ -83,6 +87,9 @@ public class LastAccessFile implements Closeable {
 
     private void saveOrLog() {
         try {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return;
+            }
             save();
         } catch (IOException e) {
             LOGGER.error("Failed to save last access file at " + path + ":", e);
@@ -91,7 +98,9 @@ public class LastAccessFile implements Closeable {
 
     private synchronized void save() throws IOException {
         if (closed) return;
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         PacketByteBuf buf;
         synchronized (accessMap) {
             now = timestampSeconds(); // regularly update the time
@@ -163,6 +172,9 @@ public class LastAccessFile implements Closeable {
     public static boolean isEverythingOlderThan(Path directory, long days) throws IOException {
         Path path = directory.resolve(FILE_NAME);
         if (Files.notExists(path)) {
+            if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+                return false;
+            }
             // missing the last access file, initialize it
             new LastAccessFile(directory).close();
         }

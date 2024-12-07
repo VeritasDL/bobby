@@ -1,6 +1,8 @@
 package de.johni0702.minecraft.bobby;
 
 import ca.stellardrift.confabricate.Confabricate;
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import de.johni0702.minecraft.bobby.commands.CreateWorldCommand;
 import de.johni0702.minecraft.bobby.commands.MergeWorldsCommand;
 import de.johni0702.minecraft.bobby.commands.UpgradeCommand;
@@ -106,6 +108,9 @@ public class Bobby implements ClientModInitializer {
     private void cleanupOldWorlds() {
         int deleteUnusedRegionsAfterDays = Bobby.getInstance().getConfig().getDeleteUnusedRegionsAfterDays();
         if (deleteUnusedRegionsAfterDays < 0) {
+            return;
+        }
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
             return;
         }
 

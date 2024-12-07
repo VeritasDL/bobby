@@ -1,5 +1,7 @@
 package de.johni0702.minecraft.bobby;
 
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import de.johni0702.minecraft.bobby.ext.ChunkLightProviderExt;
 import de.johni0702.minecraft.bobby.ext.ClientChunkManagerExt;
 import de.johni0702.minecraft.bobby.ext.ClientPlayNetworkHandlerExt;
@@ -128,6 +130,9 @@ public class FakeChunkManager {
             worlds = null;
         }
 
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         LevelStorage levelStorage = client.getLevelStorage();
         if (levelStorage.levelExists(FALLBACK_LEVEL_NAME)) {
             try (LevelStorage.Session session = levelStorage.createSession(FALLBACK_LEVEL_NAME)) {
@@ -340,6 +345,9 @@ public class FakeChunkManager {
         // We do this by temporarily reducing the client view distance to 0. That will unload all chunks and then try
         // to re-load them (by canceling the unload when they were already loaded, or from the cache when they are
         // missing).
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         update(false, () -> false, 0);
         update(false, () -> false);
     }
@@ -365,6 +373,9 @@ public class FakeChunkManager {
     }
 
     public void load(int x, int z, WorldChunk chunk) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         fakeChunks.put(ChunkPos.toLong(x, z), chunk);
 
         loadEmptySectionsOfFakeChunk(x, z, chunk);
@@ -449,6 +460,11 @@ public class FakeChunkManager {
     }
 
     public Supplier<WorldChunk> save(WorldChunk chunk) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            Pair<WorldChunk, Supplier<WorldChunk>> copy = ChunkSerializer.shallowCopy(chunk);
+            fingerprint(copy.getLeft());
+            return copy.getRight();
+        }
         Pair<WorldChunk, Supplier<WorldChunk>> copy = ChunkSerializer.shallowCopy(chunk);
         fingerprint(copy.getLeft());
         LightingProvider lightingProvider = chunk.getWorld().getLightingProvider();

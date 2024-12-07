@@ -1,6 +1,8 @@
 package de.johni0702.minecraft.bobby;
 
 import com.mojang.serialization.MapCodec;
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import de.johni0702.minecraft.bobby.util.RegionPos;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import net.minecraft.SharedConstants;
@@ -83,6 +85,9 @@ public class FakeChunkStorage extends VersionedChunkStorage {
         this.writeable = writeable;
 
         LastAccessFile lastAccess = null;
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            writeable = false;
+        }
         if (writeable) {
             try {
                 Files.createDirectories(directory);
@@ -98,7 +103,9 @@ public class FakeChunkStorage extends VersionedChunkStorage {
     @Override
     public void close() throws IOException {
         super.close();
-
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         if (lastAccess != null) {
             int deleteUnusedRegionsAfterDays = Bobby.getInstance().getConfig().getDeleteUnusedRegionsAfterDays();
             if (deleteUnusedRegionsAfterDays >= 0) {
@@ -114,6 +121,9 @@ public class FakeChunkStorage extends VersionedChunkStorage {
     }
 
     public void save(ChunkPos pos, NbtCompound chunk) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return;
+        }
         if (lastAccess != null) {
             lastAccess.touchRegion(pos.getRegionX(), pos.getRegionZ());
         }
@@ -125,6 +135,10 @@ public class FakeChunkStorage extends VersionedChunkStorage {
     }
 
     private NbtCompound loadTag(ChunkPos pos, NbtCompound nbt) {
+
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return null;
+        }
         if (nbt != null && lastAccess != null) {
             lastAccess.touchRegion(pos.getRegionX(), pos.getRegionZ());
         }

@@ -2,6 +2,8 @@ package de.johni0702.minecraft.bobby.commands;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
+import de.hysky.skyblocker.utils.Location;
+import de.hysky.skyblocker.utils.Utils;
 import de.johni0702.minecraft.bobby.FakeChunkManager;
 import de.johni0702.minecraft.bobby.FakeChunkStorage;
 import de.johni0702.minecraft.bobby.Worlds;
@@ -20,6 +22,9 @@ import java.util.function.BiConsumer;
 public class UpgradeCommand implements Command<FabricClientCommandSource> {
     @Override
     public int run(CommandContext<FabricClientCommandSource> context) {
+        if (Utils.isInCrystalHollows() || Utils.isInDungeons()) {
+            return 0;
+        }
         FabricClientCommandSource source = context.getSource();
         MinecraftClient client = source.getClient();
         ClientWorld world = source.getWorld();
